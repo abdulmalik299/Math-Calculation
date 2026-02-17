@@ -181,7 +181,7 @@ export default function GraphTheoryPage() {
     svg.call(
       d3.zoom<SVGSVGElement, any>().on("zoom", (event) => {
         g.attr("transform", event.transform.toString());
-      })
+      }) as any
     );
 
     return () => {

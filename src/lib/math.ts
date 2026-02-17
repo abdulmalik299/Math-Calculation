@@ -1,6 +1,6 @@
 import { create, all, MathJsStatic } from "mathjs";
 
-const math = create(all, {}) as MathJsStatic;
+const math = create(all as any, {}) as MathJsStatic;
 
 // Safer evaluation: restrict functions by using a scoped evaluate.
 export function evaluateExpression(expr: string, scope: Record<string, number> = {}) {
@@ -43,8 +43,7 @@ export function numericIntegral(expr: string, a: number, b: number, n = 200) {
 export type Matrix = number[][];
 
 export function parseMatrix(text: string): Matrix {
-  // Rows separated by newline ; or 
- ; columns by space/comma
+  // Rows separated by newline or semicolon; columns by space/comma.
   const rows = text
     .trim()
     .split(/\n|;/)

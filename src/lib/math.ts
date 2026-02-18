@@ -2,17 +2,44 @@ import { create, all, MathJsStatic } from "mathjs";
 
 const math = create(all as any, {}) as MathJsStatic;
 
+export function friendlyMathError(error: unknown) {
+  const msg = error instanceof Error ? error.message : String(error ?? "Unknown error");
+  const lower = msg.toLowerCase();
+
+  if (lower.includes("undefined function") || lower.includes("is not a function")) {
+    return "Invalid function name. Check function spelling like sin, cos, log, sqrt.";
+  }
+  if (lower.includes("undefined symbol") || lower.includes("undefined variable")) {
+    return "Missing variable value. Define all variables before evaluating.";
+  }
+  if (lower.includes("parenthesis") || lower.includes("unexpected end of expression") || lower.includes("unexpected part")) {
+    return "Invalid expression syntax. Check parentheses and operators.";
+  }
+  if (lower.includes("division by zero") || lower.includes("infinity") || lower.includes("cannot divide")) {
+    return "Division by zero is not allowed in this expression.";
+  }
+  return msg || "Could not evaluate expression. Please check your math input.";
+}
+
 // Safer evaluation: restrict functions by using a scoped evaluate.
 export function evaluateExpression(expr: string, scope: Record<string, number> = {}) {
-  // basic cleanup
   const cleaned = expr
     .replace(/×/g, "*")
     .replace(/÷/g, "/")
     .replace(/−/g, "-")
     .trim();
 
-  // mathjs can evaluate with scope (variables)
-  return math.evaluate(cleaned, scope);
+  if (!cleaned) throw new Error("Please enter an expression.");
+
+  try {
+    const v = math.evaluate(cleaned, scope);
+    if (typeof v === "number" && !Number.isFinite(v)) {
+      throw new Error("Division by zero");
+    }
+    return v;
+  } catch (error) {
+    throw new Error(friendlyMathError(error));
+  }
 }
 
 export function isLikelyVariableExpression(expr: string) {
@@ -23,7 +50,9 @@ export function isLikelyVariableExpression(expr: string) {
 export function numericDerivative(expr: string, x: number, h = 1e-5) {
   const f1 = Number(evaluateExpression(expr, { x: x + h }));
   const f0 = Number(evaluateExpression(expr, { x: x - h }));
-  return (f1 - f0) / (2 * h);
+  const out = (f1 - f0) / (2 * h);
+  if (!Number.isFinite(out)) throw new Error("Derivative is undefined at this point.");
+  return out;
 }
 
 // Numeric integral using Simpson's rule
@@ -35,6 +64,7 @@ export function numericIntegral(expr: string, a: number, b: number, n = 200) {
   for (let i = 1; i < N; i++) {
     const x = a + i * h;
     const fx = Number(evaluateExpression(expr, { x }));
+    if (!Number.isFinite(fx)) throw new Error("Integral failed because function is undefined on part of the interval.");
     sum += (i % 2 === 0 ? 2 : 4) * fx;
   }
   return (h / 3) * sum;
@@ -43,7 +73,6 @@ export function numericIntegral(expr: string, a: number, b: number, n = 200) {
 export type Matrix = number[][];
 
 export function parseMatrix(text: string): Matrix {
-  // Rows separated by newline or semicolon; columns by space/comma.
   const rows = text
     .trim()
     .split(/\n|;/)
@@ -88,11 +117,9 @@ export function matrixMul(A: Matrix, B: Matrix): Matrix {
 export function determinant(A: Matrix): number {
   if (A.length !== A[0].length) throw new Error("Determinant requires a square matrix.");
   const n = A.length;
-  // Copy
   const M = A.map((r) => r.slice());
   let det = 1;
   for (let i = 0; i < n; i++) {
-    // pivot
     let pivot = i;
     for (let r = i; r < n; r++) {
       if (Math.abs(M[r][i]) > Math.abs(M[pivot][i])) pivot = r;
@@ -117,7 +144,6 @@ export function inverse(A: Matrix): Matrix {
   if (A.length !== A[0].length) throw new Error("Inverse requires a square matrix.");
   const n = A.length;
   const M = A.map((r, i) => r.concat(Array.from({ length: n }, (_, j) => (i === j ? 1 : 0))));
-  // Gauss-Jordan
   for (let i = 0; i < n; i++) {
     let pivot = i;
     for (let r = i; r < n; r++) if (Math.abs(M[r][i]) > Math.abs(M[pivot][i])) pivot = r;

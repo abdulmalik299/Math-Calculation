@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from "react";
 import AdSlot from "../components/AdSlot";
 import * as d3 from "d3";
 import { pushHistory } from "../lib/storage";
+import { copyShareLink } from "../lib/share";
 import KatexBlock from "../components/KatexBlock";
 
 type Node = { id: string };
@@ -242,7 +243,8 @@ export default function GraphTheoryPage() {
         <div className="card-body">
           <div className="row">
             <button className="button" onClick={resetExample}>Load Path Graph Example</button>
-            <button className="button primary" onClick={save}>Save</button>
+            <button className="button primary" onClick={save}>💾 Save</button>
+            <button className="button" onClick={() => copyShareLink("/graph-theory", { nodes: nodes.map(n=>n.id).join(","), edges: links.map(e=>`${e.source}-${e.target}`).join(",") })}>🔗 Copy Share Link</button>
             {status && <span className="small">{status}</span>}
           </div>
 

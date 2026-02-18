@@ -2,15 +2,17 @@ import React, { useMemo, useState } from "react";
 import AdSlot from "../components/AdSlot";
 import EquationEditor from "../components/EquationEditor";
 import KatexBlock from "../components/KatexBlock";
-import { evaluateExpression } from "../lib/math";
+import { evaluateExpression, friendlyMathError } from "../lib/math";
 import { pushHistory } from "../lib/storage";
+import { copyShareLink, getQueryValue } from "../lib/share";
 
 export default function CalculatorPage() {
-  const [latex, setLatex] = useState<string>("\\frac{1}{n(n-1)}\\sum_{u\\neq v} d(u,v)");
+  const [latex, setLatex] = useState<string>(getQueryValue("latex", "\\frac{1}{n(n-1)}\\sum_{u\\neq v} d(u,v)"));
   const [ascii, setAscii] = useState<string>("");
-  const [expr, setExpr] = useState<string>("(1)/(n*(n-1))");
-  const [vars, setVars] = useState<string>("n=10");
-  const [result, setResult] = useState<string>("");
+  const [expr, setExpr] = useState<string>(getQueryValue("expr", "(1)/(n*(n-1))"));
+  const [vars, setVars] = useState<string>(getQueryValue("vars", "n=10"));
+  const [result, setResult] = useState<string>(getQueryValue("result", ""));
+  const [status, setStatus] = useState("");
 
   const scope = useMemo(() => {
     const out: Record<string, number> = {};
@@ -29,13 +31,18 @@ export default function CalculatorPage() {
       const txt = typeof v === "number" ? String(v) : JSON.stringify(v);
       setResult(txt);
       pushHistory({ area: "Calculator", latex, ascii, resultText: txt });
-    } catch (e: any) {
-      setResult(e?.message ?? "Error");
+    } catch (e) {
+      setResult(friendlyMathError(e));
     }
   }
 
+  async function onCopyShare() {
+    await copyShareLink("/calculator", { latex, expr, vars, result });
+    setStatus("Share link copied.");
+    setTimeout(() => setStatus(""), 1200);
+  }
+
   function fillExample() {
-    // Example: average distance of path graph P_n: (n+1)/3 (for n>=2)
     setLatex("M(P_n)=\\frac{n+1}{3}");
     setExpr("(n+1)/3");
     setVars("n=10");
@@ -63,7 +70,7 @@ export default function CalculatorPage() {
 
           <div className="row" style={{ marginBottom: 10 }}>
             <div className="pill">Compute Expression (math.js)</div>
-            <button className="button" onClick={fillExample}>Load Example</button>
+            <button className="button" onClick={fillExample}>✨ Load Example</button>
           </div>
 
           <input
@@ -84,10 +91,12 @@ export default function CalculatorPage() {
           />
 
           <div className="row" style={{ marginTop: 12 }}>
-            <button className="button primary" disabled={!canEval} onClick={onCalculate}>Calculate</button>
-            <button className="button" onClick={() => navigator.clipboard.writeText(latex)}>Copy LaTeX</button>
-            <button className="button" onClick={() => navigator.clipboard.writeText(expr)}>Copy Expression</button>
+            <button className="button primary" disabled={!canEval} onClick={onCalculate}>🧮 Calculate</button>
+            <button className="button" onClick={() => navigator.clipboard.writeText(latex)}>📄 Copy LaTeX</button>
+            <button className="button" onClick={() => navigator.clipboard.writeText(expr)}>📋 Copy Expression</button>
+            <button className="button" onClick={onCopyShare}>🔗 Copy Share Link</button>
           </div>
+          {status && <div className="small" style={{ marginTop: 8 }}>{status}</div>}
 
           <div style={{ marginTop: 12 }}>
             <div className="small">Result</div>
@@ -109,9 +118,6 @@ export default function CalculatorPage() {
           <div className="small" style={{ marginTop: 12 }}>
             Your typed ASCII (from MathLive) is:
             <div className="katex-wrap mono" style={{ marginTop: 6 }}>{ascii || "—"}</div>
-          </div>
-          <div className="small" style={{ marginTop: 12 }}>
-            Phase 2 can auto-translate LaTeX → compute expression more deeply and add step-by-step solving.
           </div>
         </div>
       </div>

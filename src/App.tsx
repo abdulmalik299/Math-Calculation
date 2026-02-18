@@ -10,13 +10,13 @@ import GraphTheoryPage from "./pages/GraphTheoryPage";
 import HistoryPage from "./pages/HistoryPage";
 
 const tabs = [
-  { to: "/calculator", label: "Calculator" },
-  { to: "/algebra", label: "Algebra" },
-  { to: "/calculus", label: "Calculus" },
-  { to: "/matrices", label: "Matrices" },
-  { to: "/graphs", label: "Graphs" },
-  { to: "/graph-theory", label: "Graph Theory" },
-  { to: "/history", label: "History" },
+  { to: "/calculator", label: "🧮 Calculator" },
+  { to: "/algebra", label: "ƒ Algebra" },
+  { to: "/calculus", label: "∫ Calculus" },
+  { to: "/matrices", label: "▦ Matrices" },
+  { to: "/graphs", label: "📈 Graphs" },
+  { to: "/graph-theory", label: "🕸 Graph Theory" },
+  { to: "/history", label: "🕒 History" },
 ];
 
 export default function App() {

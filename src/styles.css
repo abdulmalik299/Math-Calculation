@@ -49,8 +49,9 @@ a{ color: inherit; text-decoration: none; }
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  background: radial-gradient(circle at 30% 30%, #bcd1ff 8%, transparent 9%), radial-gradient(circle at 72% 28%, #8ce8de 8%, transparent 9%), radial-gradient(circle at 70% 72%, #7aa2ff 8%, transparent 9%), linear-gradient(135deg, var(--accent), var(--accent2));
   box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+  position: relative;
 }
 
 .brand h1{
@@ -236,3 +237,8 @@ hr.sep{
 @media (max-width: 980px){
   .hide-mobile{ display:none !important; }
 }
+
+
+.ad-skeleton{border-radius:12px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03);padding:8px;display:flex;align-items:center;justify-content:center;}
+.ad-skeleton-inner{width:100%;height:100%;border-radius:8px;background:linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.12), rgba(255,255,255,0.06));display:flex;align-items:center;justify-content:center;color:rgba(233,238,255,0.62);font-size:12px;}
+@media (max-width: 980px){ .ad-footer{display:none;} }

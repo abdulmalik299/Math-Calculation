@@ -9,6 +9,7 @@ export type HistoryItem = {
   resultText: string;
   pinned?: boolean;
   favorite?: boolean;
+  tags?: string[];
 };
 
 const KEY = "mathnexus.history.v2";
@@ -20,7 +21,7 @@ export function loadHistory(): HistoryItem[] {
     const parsed = JSON.parse(raw) as HistoryItem[];
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .map((it) => ({ ...it, pinned: Boolean(it.pinned), favorite: Boolean(it.favorite) }))
+      .map((it) => ({ ...it, pinned: Boolean(it.pinned), favorite: Boolean(it.favorite), tags: Array.isArray(it.tags) ? it.tags : [] }))
       .sort((a, b) => {
         if (a.pinned && !b.pinned) return -1;
         if (!a.pinned && b.pinned) return 1;
@@ -38,7 +39,7 @@ export function saveHistory(items: HistoryItem[]) {
 export function pushHistory(item: Omit<HistoryItem, "id" | "createdAt" | "pinned" | "favorite">) {
   const items = loadHistory();
   const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
-  items.unshift({ ...item, id, createdAt: Date.now(), pinned: false, favorite: false });
+  items.unshift({ ...item, id, createdAt: Date.now(), pinned: false, favorite: false, tags: [] });
   saveHistory(items);
 }
 
@@ -50,4 +51,11 @@ export function setHistoryFlag(id: string, key: "pinned" | "favorite", value: bo
 
 export function clearHistory() {
   localStorage.removeItem(KEY);
+}
+
+
+export function setHistoryTags(id: string, tags: string[]) {
+  const items = loadHistory();
+  const normalized = tags.map((t) => t.trim()).filter(Boolean).slice(0, 6);
+  saveHistory(items.map((it) => (it.id === id ? { ...it, tags: normalized } : it)));
 }

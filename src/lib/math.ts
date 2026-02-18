@@ -163,3 +163,48 @@ export function inverse(A: Matrix): Matrix {
 export function formatMatrix(A: Matrix): string {
   return A.map((r) => r.map((v) => (Number.isFinite(v) ? String(Number(v.toFixed(6))) : "NaN")).join("\t")).join("\n");
 }
+
+export type SolveStep = { title: string; latex: string };
+
+function matrixToLatex(A: Matrix) {
+  return "\\begin{bmatrix}" + A.map((row) => row.map((v) => Number(v.toFixed(5))).join(" & ")).join("\\\\") + "\\end{bmatrix}";
+}
+
+export function rrefWithSteps(A: Matrix) {
+  const M = A.map((r) => r.slice());
+  const rows = M.length;
+  const cols = M[0]?.length ?? 0;
+  let lead = 0;
+  const steps: SolveStep[] = [{ title: "Start matrix", latex: matrixToLatex(M) }];
+
+  for (let r = 0; r < rows && lead < cols; r++) {
+    let i = r;
+    while (i < rows && Math.abs(M[i][lead]) < 1e-10) i += 1;
+    if (i === rows) {
+      lead += 1;
+      r -= 1;
+      continue;
+    }
+    if (i !== r) {
+      [M[i], M[r]] = [M[r], M[i]];
+      steps.push({ title: `Swap R_${r + 1} and R_${i + 1}`, latex: matrixToLatex(M) });
+    }
+
+    const pivot = M[r][lead];
+    if (Math.abs(pivot - 1) > 1e-10) {
+      for (let c = 0; c < cols; c++) M[r][c] /= pivot;
+      steps.push({ title: `Scale R_${r + 1} by ${Number((1 / pivot).toFixed(5))}`, latex: matrixToLatex(M) });
+    }
+
+    for (let rr = 0; rr < rows; rr++) {
+      if (rr === r) continue;
+      const factor = M[rr][lead];
+      if (Math.abs(factor) < 1e-10) continue;
+      for (let c = 0; c < cols; c++) M[rr][c] -= factor * M[r][c];
+      steps.push({ title: `Eliminate entry in R_${rr + 1}, col ${lead + 1}`, latex: matrixToLatex(M) });
+    }
+    lead += 1;
+  }
+
+  return { rref: M.map((row) => row.map((v) => (Math.abs(v) < 1e-10 ? 0 : Number(v.toFixed(6))))), steps };
+}

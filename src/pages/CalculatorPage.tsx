@@ -1,17 +1,19 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import AdSlot from "../components/AdSlot";
 import EquationEditor from "../components/EquationEditor";
 import KatexBlock from "../components/KatexBlock";
 import { evaluateExpression, friendlyMathError } from "../lib/math";
 import { pushHistory } from "../lib/storage";
-import { copyShareLink, getQueryValue } from "../lib/share";
+import { copyShareLink, getHashQueryParams } from "../lib/share";
+import { getInitialTabValue, persistTabState } from "../lib/project";
 
 export default function CalculatorPage() {
-  const [latex, setLatex] = useState<string>(getQueryValue("latex", "\\frac{1}{n(n-1)}\\sum_{u\\neq v} d(u,v)"));
+  const qp = getHashQueryParams();
+  const [latex, setLatex] = useState<string>(getInitialTabValue("calculator", "latex", qp.get("latex"), "\\frac{1}{n(n-1)}\\sum_{u\\neq v} d(u,v)"));
   const [ascii, setAscii] = useState<string>("");
-  const [expr, setExpr] = useState<string>(getQueryValue("expr", "(1)/(n*(n-1))"));
-  const [vars, setVars] = useState<string>(getQueryValue("vars", "n=10"));
-  const [result, setResult] = useState<string>(getQueryValue("result", ""));
+  const [expr, setExpr] = useState<string>(getInitialTabValue("calculator", "expr", qp.get("expr"), "(1)/(n*(n-1))"));
+  const [vars, setVars] = useState<string>(getInitialTabValue("calculator", "vars", qp.get("vars"), "n=10"));
+  const [result, setResult] = useState<string>(getInitialTabValue("calculator", "result", qp.get("result"), ""));
   const [status, setStatus] = useState("");
 
   const scope = useMemo(() => {
@@ -24,6 +26,10 @@ export default function CalculatorPage() {
   }, [vars]);
 
   const canEval = useMemo(() => expr.trim().length > 0, [expr]);
+
+  useEffect(() => {
+    persistTabState("calculator", { latex, expr, vars, result });
+  }, [latex, expr, vars, result]);
 
   function onCalculate() {
     try {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import AdSlot from "../components/AdSlot";
 import Plot from "react-plotly.js";
 import { evaluateExpression, friendlyMathError } from "../lib/math";
@@ -6,6 +6,7 @@ import { pushHistory } from "../lib/storage";
 import KatexBlock from "../components/KatexBlock";
 import EquationEditor from "../components/EquationEditor";
 import { copyShareLink, getQueryValue } from "../lib/share";
+import { persistTabState } from "../lib/project";
 
 function linspace(a: number, b: number, n: number) {
   const out: number[] = [];
@@ -16,6 +17,7 @@ function linspace(a: number, b: number, n: number) {
 
 type GraphMode = "2d" | "3d";
 type Graph3DType = "surface" | "scatter" | "parametric";
+type GraphLabTab = "basic" | "advanced" | "blender";
 
 type CameraPreset = "iso" | "top" | "front" | "side";
 
@@ -42,6 +44,7 @@ function cameraForPreset(preset: CameraPreset) {
 export default function GraphsPage() {
   const [latex, setLatex] = useState<string>(getQueryValue("latex", "y=\\sin(x)"));
   const [ascii, setAscii] = useState<string>("");
+  const [graphLabTab, setGraphLabTab] = useState<GraphLabTab>((getQueryValue("lab", "basic") as GraphLabTab) || "basic");
   const [graphMode, setGraphMode] = useState<GraphMode>((getQueryValue("mode", "2d") as GraphMode) === "3d" ? "3d" : "2d");
   const [graph3DType, setGraph3DType] = useState<Graph3DType>((getQueryValue("kind", "surface") as Graph3DType) || "surface");
   const [functionsText, setFunctionsText] = useState<string>(getQueryValue("fns", "sin(x)\ncos(x)"));
@@ -57,8 +60,37 @@ export default function GraphsPage() {
   const [tmin, setTmin] = useState<string>(getQueryValue("tmin", "-12"));
   const [tmax, setTmax] = useState<string>(getQueryValue("tmax", "12"));
   const [result, setResult] = useState<string>(getQueryValue("result", ""));
+
+  const [blenderExpr, setBlenderExpr] = useState<string>(getQueryValue("bexpr", "sin(t*freq)*amp"));
+  const [freq, setFreq] = useState<string>(getQueryValue("freq", "1"));
+  const [amp, setAmp] = useState<string>(getQueryValue("amp", "1"));
   const [sceneCamera, setSceneCamera] = useState<any>(cameraForPreset("iso"));
   const [sceneRevision, setSceneRevision] = useState<number>(0);
+
+  useEffect(() => {
+    persistTabState("graphs", {
+      latex,
+      mode: graphMode,
+      kind: graph3DType,
+      fns: functionsText,
+      surface: surfaceExpr,
+      points: scatterPoints,
+      xt: parametricX,
+      yt: parametricY,
+      zt: parametricZ,
+      xmin,
+      xmax,
+      ymin,
+      ymax,
+      tmin,
+      tmax,
+      lab: graphLabTab,
+      bexpr: blenderExpr,
+      freq,
+      amp,
+    });
+  }, [latex, graphMode, graph3DType, functionsText, surfaceExpr, scatterPoints, parametricX, parametricY, parametricZ, xmin, xmax, ymin, ymax, tmin, tmax, graphLabTab, blenderExpr, freq, amp]);
+
 
   const functions = useMemo(() => functionsText.split("\n").map((s) => s.trim()).filter(Boolean), [functionsText]);
 
@@ -128,6 +160,19 @@ export default function GraphsPage() {
     }
   }, [graph3DType, xmin, xmax, ymin, ymax, tmin, tmax, surfaceExpr, scatterPoints, parametricX, parametricY, parametricZ, paramValues]);
 
+  const blenderPlot = useMemo(() => {
+    try {
+      const f = Number(freq);
+      const a = Number(amp);
+      if (!Number.isFinite(f) || !Number.isFinite(a)) return null;
+      const ts = linspace(-10, 10, 400);
+      const ys = ts.map((t) => Number(evaluateExpression(blenderExpr, { t, freq: f, amp: a })));
+      return [{ x: ts, y: ys, type: "scatter", mode: "lines", name: "Blender preview" }];
+    } catch {
+      return null;
+    }
+  }, [blenderExpr, freq, amp]);
+
   function saveToHistory() {
     const txt = graphMode === "2d"
       ? `2D plot functions: ${functions.join(" | ")}`
@@ -159,6 +204,10 @@ export default function GraphsPage() {
         ymax,
         tmin,
         tmax,
+        lab: graphLabTab,
+        bexpr: blenderExpr,
+        freq,
+        amp,
       });
       setResult("Share link copied.");
       setTimeout(() => setResult(""), 1200);
@@ -229,6 +278,9 @@ export default function GraphsPage() {
           </div>
 
           <div className="row" style={{ gap: 8, marginBottom: 8 }}>
+            <button className={`button ${graphLabTab === "basic" ? "primary" : ""}`} onClick={() => setGraphLabTab("basic")}>Basic</button>
+            <button className={`button ${graphLabTab === "advanced" ? "primary" : ""}`} onClick={() => setGraphLabTab("advanced")}>Advanced</button>
+            <button className={`button ${graphLabTab === "blender" ? "primary" : ""}`} onClick={() => setGraphLabTab("blender")}>Blender Nodes</button>
             <button className={`button ${graphMode === "2d" ? "primary" : ""}`} onClick={() => setGraphMode("2d")}>2D</button>
             <button className={`button ${graphMode === "3d" ? "primary" : ""}`} onClick={() => setGraphMode("3d")}>3D</button>
             {graphMode === "3d" && (
@@ -240,10 +292,35 @@ export default function GraphsPage() {
             )}
           </div>
 
-          <EquationEditor latex={latex} onChange={({ latex: L, ascii: A }) => { setLatex(L); setAscii(A); }} />
+          {graphLabTab === "blender" ? (
+            <div className="card" style={{ padding: 12 }}>
+              <div className="small">Blender Function Playground</div>
+              <input className="input mono" value={blenderExpr} onChange={(e) => setBlenderExpr(e.target.value)} />
+              <div className="row" style={{ marginTop: 10 }}>
+                <div style={{ flex: 1 }}><div className="small">freq</div><input className="input mono" value={freq} onChange={(e) => setFreq(e.target.value)} /></div>
+                <div style={{ flex: 1 }}><div className="small">amp</div><input className="input mono" value={amp} onChange={(e) => setAmp(e.target.value)} /></div>
+              </div>
+              <div className="katex-wrap mono" style={{ marginTop: 10 }}>Node Recipe: Value(t) → Multiply(freq) → Sine → Multiply(amp)</div>
+              <div className="row" style={{ marginTop: 8 }}>
+                <button className="button" onClick={() => { setBlenderExpr("sin(t*freq)*amp"); setFreq("2"); setAmp("1.2"); }}>Pattern: Ripple</button>
+                <button className="button" onClick={() => { setBlenderExpr("sin(t*freq)/(1+abs(t))*amp"); }}>Pattern: Wave falloff</button>
+              </div>
+            </div>
+          ) : (
+            <EquationEditor latex={latex} onChange={({ latex: L, ascii: A }) => { setLatex(L); setAscii(A); }} />
+          )}
 
           <hr className="sep" />
-          {graphMode === "2d" ? (
+          {graphLabTab === "blender" ? (
+              blenderPlot ? (
+                <Plot
+                  data={blenderPlot as any}
+                  layout={{ autosize: true, height: 420, margin: { l: 40, r: 20, t: 20, b: 40 }, paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)", xaxis: { title: "t" }, yaxis: { title: "y" }, font: { color: "#e9eeff" } }}
+                  config={{ responsive: true, displaylogo: false }}
+                  style={{ width: "100%" }}
+                />
+              ) : <div className="katex-wrap mono">Invalid Blender expression.</div>
+            ) : graphMode === "2d" ? (
             <>
               <div className="small">Functions (one per line):</div>
               <textarea rows={4} className="input mono" value={functionsText} onChange={(e) => setFunctionsText(e.target.value)} />
@@ -311,7 +388,16 @@ export default function GraphsPage() {
           )}
 
           <div style={{ marginTop: 12 }}>
-            {graphMode === "2d" ? (
+            {graphLabTab === "blender" ? (
+              blenderPlot ? (
+                <Plot
+                  data={blenderPlot as any}
+                  layout={{ autosize: true, height: 420, margin: { l: 40, r: 20, t: 20, b: 40 }, paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)", xaxis: { title: "t" }, yaxis: { title: "y" }, font: { color: "#e9eeff" } }}
+                  config={{ responsive: true, displaylogo: false }}
+                  style={{ width: "100%" }}
+                />
+              ) : <div className="katex-wrap mono">Invalid Blender expression.</div>
+            ) : graphMode === "2d" ? (
               plot2d ? (
                 <Plot
                   data={plot2d as any}

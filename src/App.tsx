@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import AdSlot from "./components/AdSlot";
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
 import CalculatorPage from "./pages/CalculatorPage";
@@ -8,6 +8,7 @@ import MatricesPage from "./pages/MatricesPage";
 import GraphsPage from "./pages/GraphsPage";
 import GraphTheoryPage from "./pages/GraphTheoryPage";
 import HistoryPage from "./pages/HistoryPage";
+import { buildProjectShareLink, hydrateProjectFromUrl, saveProjectSnapshot } from "./lib/project";
 
 const tabs = [
   { to: "/calculator", label: "🧮 Calculator" },
@@ -20,6 +21,47 @@ const tabs = [
 ];
 
 export default function App() {
+  const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    const ok = hydrateProjectFromUrl();
+    if (ok) {
+      setStatus("Project loaded from link.");
+      setTimeout(() => setStatus(""), 2000);
+    }
+  }, []);
+
+  async function onShareProject() {
+    const link = buildProjectShareLink();
+    await navigator.clipboard.writeText(link);
+    setStatus("Project share link copied.");
+    setTimeout(() => setStatus(""), 1500);
+  }
+
+  function onSaveProject() {
+    saveProjectSnapshot();
+    setStatus("Project snapshot saved.");
+    setTimeout(() => setStatus(""), 1500);
+  }
+
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      const key = event.key.toLowerCase();
+      if (key === "s") {
+        event.preventDefault();
+        onSaveProject();
+      }
+      if (key === "k") {
+        event.preventDefault();
+        onShareProject();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <>
       <div className="topbar">
@@ -30,6 +72,12 @@ export default function App() {
               <h1>MathNexus</h1>
               <div className="tag">Equations • Calculations • Graphs • Graph Theory</div>
             </div>
+          </div>
+
+          <div className="row" style={{ marginBottom: 10 }}>
+            <button className="button" onClick={onSaveProject}>💾 Save Project</button>
+            <button className="button" onClick={onShareProject}>🔗 Share Project</button>
+            {status && <span className="small">{status}</span>}
           </div>
 
           <nav className="nav" aria-label="Primary">

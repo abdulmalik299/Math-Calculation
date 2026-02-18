@@ -5,39 +5,26 @@ type Props = {
   label?: string;
 };
 
-/**
- * Phase 1.1: Ad placeholders.
- *
- * Later (when you get AdSense), replace the placeholder div with the official script/snippet.
- * Keep the same container sizes to avoid layout shift.
- */
+const adsEnabled = import.meta.env.VITE_ADS_ENABLED === "true";
+
 export default function AdSlot({ slot, label }: Props) {
+  if (!adsEnabled) return null;
+
   const meta = {
-    header: { h: 90, title: "Header Banner (728×90 / 320×100)" },
-    sidebar: { h: 250, title: "Sidebar Rectangle (300×250)" },
-    inline: { h: 280, title: "Inline Article (Responsive)" },
-    footer: { h: 90, title: "Footer Banner (728×90 / 320×100)" },
+    header: { h: 54, title: "Ad slot" },
+    sidebar: { h: 80, title: "Ad slot" },
+    inline: { h: 64, title: "Ad slot" },
+    footer: { h: 54, title: "Ad slot" },
   }[slot];
 
   return (
     <div
+      className={`ad-skeleton ${slot === "footer" ? "ad-footer" : ""}`}
       aria-label={`Ad slot: ${slot}`}
-      style={{
-        borderRadius: 16,
-        border: "1px dashed rgba(255,255,255,0.18)",
-        background: "rgba(0,0,0,0.16)",
-        padding: 12,
-        minHeight: meta.h,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "rgba(233,238,255,0.55)",
-        textAlign: "center",
-      }}
+      style={{ minHeight: meta.h }}
     >
-      <div>
-        <div style={{ fontSize: 12, letterSpacing: 0.2 }}>{label ?? meta.title}</div>
-        <div style={{ fontSize: 11, opacity: 0.9, marginTop: 6 }}>AdSense code goes here</div>
+      <div className="ad-skeleton-inner">
+        <span>{label ?? meta.title}</span>
       </div>
     </div>
   );

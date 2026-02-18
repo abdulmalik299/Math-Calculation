@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import AdSlot from "../components/AdSlot";
-import { determinant, formatMatrix, inverse, matrixAdd, matrixMul, parseMatrix } from "../lib/math";
+import { determinant, formatMatrix, friendlyMathError, inverse, matrixAdd, matrixMul, parseMatrix } from "../lib/math";
 import { pushHistory } from "../lib/storage";
+import { copyShareLink, getQueryValue } from "../lib/share";
 import KatexBlock from "../components/KatexBlock";
 
 function matrixToLatex(A: number[][]) {
@@ -10,9 +11,9 @@ function matrixToLatex(A: number[][]) {
 }
 
 export default function MatricesPage() {
-  const [Atext, setAtext] = useState("1 2\n3 4");
-  const [Btext, setBtext] = useState("5 6\n7 8");
-  const [result, setResult] = useState<string>("");
+  const [Atext, setAtext] = useState(getQueryValue("A", "1 2\n3 4"));
+  const [Btext, setBtext] = useState(getQueryValue("B", "5 6\n7 8"));
+  const [result, setResult] = useState<string>(getQueryValue("result", ""));
   const [latex, setLatex] = useState<string>("A=\\begin{bmatrix}1&2\\\\3&4\\end{bmatrix}");
 
   function doOp(op: "add" | "mul" | "det" | "inv") {
@@ -45,8 +46,8 @@ export default function MatricesPage() {
       setResult(txt);
       setLatex(L);
       pushHistory({ area: "Matrices", latex: L, ascii: "", resultText: txt });
-    } catch (e: any) {
-      setResult(e?.message ?? "Error");
+    } catch (e) {
+      setResult(friendlyMathError(e));
     }
   }
 
@@ -70,7 +71,8 @@ export default function MatricesPage() {
           </div>
 
           <div className="row" style={{ marginTop: 12 }}>
-            <button className="button" onClick={() => { setAtext("1 2\n3 4"); setBtext("5 6\n7 8"); }}>Load Example</button>
+            <button className="button" onClick={() => copyShareLink("/matrices", { A: Atext, B: Btext, result })}>🔗 Copy Share Link</button>
+            <button className="button" onClick={() => { setAtext("1 2\n3 4"); setBtext("5 6\n7 8"); }}>✨ Load Example</button>
             <button className="button primary" onClick={() => doOp("add")}>A + B</button>
             <button className="button primary" onClick={() => doOp("mul")}>A × B</button>
             <button className="button" onClick={() => doOp("det")}>det(A)</button>
@@ -95,7 +97,8 @@ export default function MatricesPage() {
           </div>
           <KatexBlock latex={latex || "\\text{ }"} />
           <div className="row" style={{ marginTop: 12 }}>
-            <button className="button" onClick={() => navigator.clipboard.writeText(latex)}>Copy LaTeX</button>
+            <button className="button" onClick={() => copyShareLink("/matrices", { A: Atext, B: Btext, result })}>🔗 Copy Share Link</button>
+            <button className="button" onClick={() => navigator.clipboard.writeText(latex)}>📄 Copy LaTeX</button>
           </div>
         </div>
       </div>

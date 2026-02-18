@@ -8,7 +8,7 @@ export default function KatexBlock({ latex }: { latex: string }) {
         throwOnError: false,
         displayMode: true,
       });
-    } catch (e) {
+    } catch {
       return katex.renderToString("\\text{Invalid LaTeX}", { throwOnError: false, displayMode: true });
     }
   }, [latex]);
